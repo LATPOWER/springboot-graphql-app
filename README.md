@@ -7,7 +7,7 @@ A Spring Boot 4.0.6 application with a GraphQL endpoint, designed to be invoked 
 - **Spring Boot 4.0.6** (Spring Framework 7)
 - **Spring for GraphQL** (with `@Controller` + `@QueryMapping` / `@MutationMapping`)
 - **Java 17**
-- **Maven**
+- **Gradle**
 
 ## Project Structure
 
@@ -29,7 +29,7 @@ src/main/
 ## Running the Application
 
 ```bash
-./mvnw spring-boot:run
+./gradlew bootRun
 ```
 
 The application starts on **http://localhost:8080**.
