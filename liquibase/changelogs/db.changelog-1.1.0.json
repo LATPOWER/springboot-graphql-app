@@ -1,0 +1,141 @@
+{
+  "databaseChangeLog": [
+    {
+      "changeSet": {
+        "id": "1.1.0-001",
+        "author": "admin",
+        "labels": "release-1.1.0",
+        "context": "all",
+        "comment": "Create reviews collection for book reviews feature",
+        "changes": [
+          {
+            "createCollection": {
+              "collectionName": "reviews",
+              "options": "{ validator: { $jsonSchema: { bsonType: 'object', required: ['bookId', 'rating'], properties: { bookId: { bsonType: 'string' }, rating: { bsonType: 'int', minimum: 1, maximum: 5 }, comment: { bsonType: 'string' }, createdAt: { bsonType: 'date' } } } } }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "dropCollection": {
+              "collectionName": "reviews"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.1.0-002",
+        "author": "admin",
+        "labels": "release-1.1.0",
+        "context": "all",
+        "comment": "Add compound index on reviews (bookId + createdAt)",
+        "changes": [
+          {
+            "createIndex": {
+              "collectionName": "reviews",
+              "keys": "{ bookId: 1, createdAt: -1 }",
+              "options": "{ name: 'idx_reviews_book_date' }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "dropIndex": {
+              "collectionName": "reviews",
+              "keys": "{ bookId: 1, createdAt: -1 }"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.1.0-003",
+        "author": "admin",
+        "labels": "release-1.1.0",
+        "context": "all",
+        "comment": "Add text index on books.title for full-text search",
+        "changes": [
+          {
+            "createIndex": {
+              "collectionName": "books",
+              "keys": "{ title: 'text' }",
+              "options": "{ name: 'idx_books_title_text' }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "dropIndex": {
+              "collectionName": "books",
+              "keys": "{ title: 'text' }"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.1.0-004",
+        "author": "admin",
+        "labels": "release-1.1.0",
+        "context": "all",
+        "comment": "Update books validator to include publishedYear field",
+        "changes": [
+          {
+            "runCommand": {
+              "command": "{ collMod: 'books', validator: { $jsonSchema: { bsonType: 'object', required: ['title', 'authorId'], properties: { title: { bsonType: 'string', description: 'Book title' }, authorId: { bsonType: 'string', description: 'Reference to authors collection' }, isbn: { bsonType: 'string', description: 'ISBN-13' }, pages: { bsonType: 'int', description: 'Page count' }, publishedYear: { bsonType: 'int', description: 'Year of publication' } } } }, validationLevel: 'moderate' }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "runCommand": {
+              "command": "{ collMod: 'books', validator: { $jsonSchema: { bsonType: 'object', required: ['title', 'authorId'], properties: { title: { bsonType: 'string', description: 'Book title' }, authorId: { bsonType: 'string', description: 'Reference to authors collection' }, isbn: { bsonType: 'string', description: 'ISBN-13' }, pages: { bsonType: 'int', description: 'Page count' } } } }, validationLevel: 'moderate' }"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.1.0-005",
+        "author": "admin",
+        "labels": "release-1.1.0",
+        "context": "all",
+        "comment": "Backfill publishedYear on existing seed data",
+        "changes": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: { _id: 'book-001' }, u: { $set: { publishedYear: 2018 } } }, { q: { _id: 'book-002' }, u: { $set: { publishedYear: 2008 } } }, { q: { _id: 'book-003' }, u: { $set: { publishedYear: 2017 } } } ] }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: { _id: 'book-001' }, u: { $unset: { publishedYear: '' } } }, { q: { _id: 'book-002' }, u: { $unset: { publishedYear: '' } } }, { q: { _id: 'book-003' }, u: { $unset: { publishedYear: '' } } } ] }"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.1.0-tag",
+        "author": "admin",
+        "labels": "release-1.1.0",
+        "context": "all",
+        "changes": [
+          {
+            "tagDatabase": {
+              "tag": "release-1.1.0"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

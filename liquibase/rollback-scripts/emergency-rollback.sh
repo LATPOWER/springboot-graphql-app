@@ -19,7 +19,7 @@ set -euo pipefail
 # ---- Configuration ----
 MONGO_URI="${MONGO_URI:-mongodb://localhost:27017/myapp_db}"
 BACKUP_DIR="${BACKUP_DIR:-/backups/mongodb}"
-CHANGELOG_FILE="${CHANGELOG_FILE:-changelogs/db.changelog-master.xml}"
+CHANGELOG_FILE="${CHANGELOG_FILE:-changelogs/db.changelog-master.json}"
 LIQUIBASE_DEFAULTS="${LIQUIBASE_DEFAULTS:-}"
 
 # ---- Color output ----
