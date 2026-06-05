@@ -12,8 +12,6 @@ liquibase/
 │   ├── db.changelog-1.0.0.json          # Release 1.0.0: collections, indexes, seed data
 │   ├── db.changelog-1.1.0.json          # Release 1.1.0: reviews, validator updates
 │   └── formatted-mongo-example.js        # Formatted Mongo example (Pro only)
-├── rollback-scripts/
-│   └── emergency-rollback.sh             # Backup + rollback automation
 └── README.md
 ```
 
@@ -33,6 +31,16 @@ cd liquibase/
 liquibase update
 ```
 
+### Check Status
+
+```bash
+# View applied changesets
+liquibase history
+
+# View pending changesets
+liquibase status
+```
+
 ### Tag a Release
 
 ```bash
@@ -42,22 +50,25 @@ liquibase tag --tag=release-1.0.0
 ### Rollback
 
 ```bash
-# By tag
+# By tag (recommended for releases)
 liquibase rollback --tag=release-1.0.0
 
-# By count
+# By count (undo last N changesets)
 liquibase rollback-count --count=3
 
-# By date
+# By date (undo everything after a specific date)
 liquibase rollback-to-date --date=2025-06-01T10:00:00
 ```
 
-### Emergency Rollback (with backup)
+### Targeted Rollback (Pro/Secure Only)
 
 ```bash
-chmod +x rollback-scripts/emergency-rollback.sh
-./rollback-scripts/emergency-rollback.sh --tag release-1.0.0
-./rollback-scripts/emergency-rollback.sh --count 5
+# Undo a single specific changeset without affecting later ones
+liquibase rollback-one-changeset \
+  --changeset-id="1.1.0-003" \
+  --changeset-author="admin" \
+  --changelog-file=changelogs/db.changelog-master.json \
+  --force
 ```
 
 ## Full Documentation

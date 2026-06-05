@@ -10,10 +10,9 @@
 6. [Rollback Strategies](#rollback-strategies)
 7. [Rollback Commands Reference](#rollback-commands-reference)
 8. [Step-by-Step Rollback Procedures](#step-by-step-rollback-procedures)
-9. [Data Backup and Recovery](#data-backup-and-recovery)
-10. [Known Limitations](#known-limitations)
-11. [Troubleshooting](#troubleshooting)
-12. [Appendix: Example Changelogs](#appendix-example-changelogs)
+9. [Known Limitations](#known-limitations)
+10. [Troubleshooting](#troubleshooting)
+11. [Appendix: Example Changelogs](#appendix-example-changelogs)
 
 ---
 
@@ -143,8 +142,6 @@ liquibase/
 │   ├── db.changelog-1.0.0.json          # Release 1.0.0 changes
 │   ├── db.changelog-1.1.0.json          # Release 1.1.0 changes
 │   └── db.changelog-1.2.0.json          # Release 1.2.0 changes
-├── rollback-scripts/
-│   └── emergency-rollback.sh            # Emergency rollback helper
 ├── liquibase.properties
 └── README.md
 ```
@@ -248,113 +245,77 @@ These SQL-output commands are **not supported** for MongoDB:
 
 ### Procedure A: Planned Release Rollback
 
-Use this when a deployment to production needs to be fully reverted.
+Use this when a deployment to production needs to be fully reverted to a tagged state.
 
-```
-Step 1: Verify the current database state
-  $ liquibase history
-  $ liquibase status
+```bash
+# Step 1: Verify the current database state
+liquibase history
+liquibase status
 
-Step 2: Take a MongoDB backup BEFORE rolling back
-  $ mongodump --uri="mongodb://host:27017/myapp_db" \
-      --out=/backups/pre-rollback-$(date +%Y%m%d_%H%M%S)
+# Step 2: Identify the target tag (find the tag you want to rollback to)
+liquibase history
+# → e.g., release-1.0.0
 
-Step 3: Identify the target tag
-  $ liquibase history
-  → Find the tag you want to rollback to (e.g., release-1.0.0)
+# Step 3: Execute the rollback
+liquibase rollback --tag=release-1.0.0 \
+    --changelog-file=changelogs/db.changelog-master.json
 
-Step 4: Execute the rollback
-  $ liquibase rollback --tag=release-1.0.0 \
-      --changelog-file=changelogs/db.changelog-master.json
+# Step 4: Verify the rollback succeeded
+liquibase history
+# → Only changesets up to release-1.0.0 should remain
 
-Step 5: Verify the rollback
-  $ liquibase history
-  → Confirm that only changesets up to the target tag remain
-
-Step 6: Validate application behavior
-  → Run smoke tests against the database
-  → Verify collections and indexes match expected state
+# Step 5: Validate application behavior
+liquibase status
+# → Run application smoke tests
 ```
 
 ### Procedure B: Emergency Hotfix Rollback
 
 Use this when the last deployment broke something and you need to undo N changesets fast.
 
-```
-Step 1: Identify how many changesets to rollback
-  $ liquibase history
-  → Count the changesets applied in the last deployment
+```bash
+# Step 1: Identify how many changesets to rollback
+liquibase history
+# → Count the changesets applied in the last deployment
 
-Step 2: MongoDB backup
-  $ mongodump --uri="mongodb://host:27017/myapp_db" \
-      --out=/backups/emergency-$(date +%Y%m%d_%H%M%S)
+# Step 2: Execute rollback (e.g., undo last 3 changesets)
+liquibase rollback-count --count=3
 
-Step 3: Execute rollback
-  $ liquibase rollback-count --count=<N>
-
-Step 4: Verify
-  $ liquibase history
-  $ mongosh --eval "db.getCollectionNames()"
+# Step 3: Verify
+liquibase history
+liquibase status
 ```
 
 ### Procedure C: Targeted Single-Changeset Rollback (Pro Only)
 
 Use this when one changeset is the root cause but subsequent ones are safe.
 
-```
-Step 1: Identify the problematic changeset
-  $ liquibase history
-  → Note the changeset id, author, and changelog file
+```bash
+# Step 1: Identify the problematic changeset
+liquibase history
+# → Note the changeset id, author, and changelog file
 
-Step 2: MongoDB backup
-  $ mongodump --uri="mongodb://host:27017/myapp_db" \
-      --out=/backups/targeted-$(date +%Y%m%d_%H%M%S)
+# Step 2: Execute targeted rollback
+liquibase rollback-one-changeset \
+    --changeset-id="1.1.0-003" \
+    --changeset-author="admin" \
+    --changelog-file=changelogs/db.changelog-master.json \
+    --force
 
-Step 3: Execute targeted rollback
-  $ liquibase rollback-one-changeset \
-      --changeset-id="<id>" \
-      --changeset-author="<author>" \
-      --changelog-file=<file> \
-      --force
-
-Step 4: Verify
-  $ liquibase history
+# Step 3: Verify
+liquibase history
 ```
 
----
+### Procedure D: Rollback by Date
 
-## Data Backup and Recovery
-
-### Pre-Rollback Backup (Mandatory)
-
-Always take a backup before executing any rollback. MongoDB's `mongodump` provides a point-in-time snapshot:
+Use this to revert all changesets applied after a known-good timestamp.
 
 ```bash
-#!/bin/bash
-# backup-before-rollback.sh
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/backups/mongodb/pre-rollback-${TIMESTAMP}"
-MONGO_URI="mongodb://localhost:27017/myapp_db"
+# Rollback all changes applied after June 1, 2025 at 10:00 AM
+liquibase rollback-to-date --date=2025-06-01T10:00:00
 
-echo "Creating backup at ${BACKUP_DIR}..."
-mongodump --uri="${MONGO_URI}" --out="${BACKUP_DIR}"
-
-if [ $? -eq 0 ]; then
-    echo "Backup successful: ${BACKUP_DIR}"
-else
-    echo "ERROR: Backup failed. Do NOT proceed with rollback."
-    exit 1
-fi
-```
-
-### Restore from Backup (Last Resort)
-
-If a Liquibase rollback fails or produces unexpected results:
-
-```bash
-mongorestore --uri="mongodb://localhost:27017/myapp_db" \
-    --drop \
-    /backups/mongodb/pre-rollback-<timestamp>/myapp_db
+# Verify
+liquibase history
 ```
 
 ---
@@ -404,7 +365,3 @@ See the example changelog files in the [`liquibase/changelogs/`](../../liquibase
 - **`db.changelog-1.0.0.json`** — Collection creation, indexes, seed data with full rollback blocks.
 - **`db.changelog-1.1.0.json`** — Schema modifications, validator updates, new indexes with rollback.
 - **`formatted-mongo-example.js`** — Formatted Mongo changelog example (Pro/Secure only).
-
-See the helper scripts in [`liquibase/rollback-scripts/`](../../liquibase/rollback-scripts/):
-
-- **`emergency-rollback.sh`** — Automated backup + rollback script for emergency scenarios.
