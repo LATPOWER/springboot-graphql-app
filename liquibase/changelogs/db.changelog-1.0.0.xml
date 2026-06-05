@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:mongodb="http://www.liquibase.org/xml/ns/mongodb"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+        http://www.liquibase.org/xml/ns/mongodb
+        http://www.liquibase.org/xml/ns/mongodb/liquibase-mongodb-latest.xsd">
+
+    <!-- =======================================================
+         Release 1.0.0 — Initial schema setup
+         Demonstrates rollback patterns for common MongoDB operations.
+         ======================================================= -->
+
+    <!-- ======================= -->
+    <!-- 1. Create "books" collection -->
+    <!-- ======================= -->
+    <changeSet id="1.0.0-001" author="admin" labels="release-1.0.0" context="all">
+        <comment>Create the books collection with JSON Schema validator</comment>
+
+        <mongodb:createCollection collectionName="books">
+            <mongodb:options>
+                {
+                    validator: {
+                        $jsonSchema: {
+                            bsonType: "object",
+                            required: ["title", "authorId"],
+                            properties: {
+                                title:    { bsonType: "string", description: "Book title" },
+                                authorId: { bsonType: "string", description: "Reference to authors collection" },
+                                isbn:     { bsonType: "string", description: "ISBN-13" },
+                                pages:    { bsonType: "int",    description: "Page count" }
+                            }
+                        }
+                    },
+                    validationLevel: "moderate"
+                }
+            </mongodb:options>
+        </mongodb:createCollection>
+
+        <rollback>
+            <mongodb:dropCollection collectionName="books" />
+        </rollback>
+    </changeSet>
+
+    <!-- ======================= -->
+    <!-- 2. Create "authors" collection -->
+    <!-- ======================= -->
+    <changeSet id="1.0.0-002" author="admin" labels="release-1.0.0" context="all">
+        <comment>Create the authors collection</comment>
+
+        <mongodb:createCollection collectionName="authors">
+            <mongodb:options>
+                {
+                    validator: {
+                        $jsonSchema: {
+                            bsonType: "object",
+                            required: ["name"],
+                            properties: {
+                                name:  { bsonType: "string", description: "Author full name" },
+                                email: { bsonType: "string", description: "Contact email" }
+                            }
+                        }
+                    }
+                }
+            </mongodb:options>
+        </mongodb:createCollection>
+
+        <rollback>
+            <mongodb:dropCollection collectionName="authors" />
+        </rollback>
+    </changeSet>
+
+    <!-- ======================= -->
+    <!-- 3. Create index on books.isbn -->
+    <!-- ======================= -->
+    <changeSet id="1.0.0-003" author="admin" labels="release-1.0.0" context="all">
+        <comment>Add unique index on books.isbn for fast lookups</comment>
+
+        <mongodb:createIndex collectionName="books">
+            <mongodb:keys>{ isbn: 1 }</mongodb:keys>
+            <mongodb:options>{ unique: true, name: "idx_books_isbn" }</mongodb:options>
+        </mongodb:createIndex>
+
+        <rollback>
+            <mongodb:dropIndex collectionName="books">
+                <mongodb:keys>{ isbn: 1 }</mongodb:keys>
+            </mongodb:dropIndex>
+        </rollback>
+    </changeSet>
+
+    <!-- ======================= -->
+    <!-- 4. Create index on books.authorId -->
+    <!-- ======================= -->
+    <changeSet id="1.0.0-004" author="admin" labels="release-1.0.0" context="all">
+        <comment>Add index on books.authorId for join queries</comment>
+
+        <mongodb:createIndex collectionName="books">
+            <mongodb:keys>{ authorId: 1 }</mongodb:keys>
+            <mongodb:options>{ name: "idx_books_authorId" }</mongodb:options>
+        </mongodb:createIndex>
+
+        <rollback>
+            <mongodb:dropIndex collectionName="books">
+                <mongodb:keys>{ authorId: 1 }</mongodb:keys>
+            </mongodb:dropIndex>
+        </rollback>
+    </changeSet>
+
+    <!-- ======================= -->
+    <!-- 5. Seed reference data: authors -->
+    <!-- ======================= -->
+    <changeSet id="1.0.0-005" author="admin" labels="release-1.0.0" context="all">
+        <comment>Seed initial authors</comment>
+
+        <mongodb:insertMany collectionName="authors">
+            <mongodb:documents>
+                [
+                    { _id: "author-001", name: "Joshua Bloch",      email: "jbloch@example.com" },
+                    { _id: "author-002", name: "Robert C. Martin",  email: "unclebob@example.com" },
+                    { _id: "author-003", name: "Martin Kleppmann",  email: "kleppmann@example.com" }
+                ]
+            </mongodb:documents>
+        </mongodb:insertMany>
+
+        <rollback>
+            <mongodb:runCommand>
+                <mongodb:command>
+                    {
+                        delete: "authors",
+                        deletes: [
+                            {
+                                q: { _id: { $in: ["author-001", "author-002", "author-003"] } },
+                                limit: 0
+                            }
+                        ]
+                    }
+                </mongodb:command>
+            </mongodb:runCommand>
+        </rollback>
+    </changeSet>
+
+    <!-- ======================= -->
+    <!-- 6. Seed reference data: books -->
+    <!-- ======================= -->
+    <changeSet id="1.0.0-006" author="admin" labels="release-1.0.0" context="all">
+        <comment>Seed initial books</comment>
+
+        <mongodb:insertMany collectionName="books">
+            <mongodb:documents>
+                [
+                    { _id: "book-001", title: "Effective Java",                  authorId: "author-001", isbn: "978-0134685991", pages: 416 },
+                    { _id: "book-002", title: "Clean Code",                      authorId: "author-002", isbn: "978-0132350884", pages: 464 },
+                    { _id: "book-003", title: "Designing Data-Intensive Apps",   authorId: "author-003", isbn: "978-1449373320", pages: 616 }
+                ]
+            </mongodb:documents>
+        </mongodb:insertMany>
+
+        <rollback>
+            <mongodb:runCommand>
+                <mongodb:command>
+                    {
+                        delete: "books",
+                        deletes: [
+                            {
+                                q: { _id: { $in: ["book-001", "book-002", "book-003"] } },
+                                limit: 0
+                            }
+                        ]
+                    }
+                </mongodb:command>
+            </mongodb:runCommand>
+        </rollback>
+    </changeSet>
+
+    <!-- ======================= -->
+    <!-- 7. Tag release 1.0.0 -->
+    <!-- ======================= -->
+    <changeSet id="1.0.0-tag" author="admin" labels="release-1.0.0" context="all">
+        <tagDatabase tag="release-1.0.0" />
+    </changeSet>
+
+</databaseChangeLog>
