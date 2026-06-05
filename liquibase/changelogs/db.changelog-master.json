@@ -9,6 +9,11 @@
       "include": {
         "file": "changelogs/db.changelog-1.1.0.json"
       }
+    },
+    {
+      "include": {
+        "file": "changelogs/db.changelog-1.2.0.json"
+      }
     }
   ]
 }

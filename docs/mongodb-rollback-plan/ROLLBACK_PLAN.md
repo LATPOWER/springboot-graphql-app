@@ -158,6 +158,139 @@ liquibase/
 | `runCommand` (update) | Modify documents | `runCommand` with reverse update |
 | `runCommand` (collMod) | Modify collection options | `runCommand` with previous options |
 
+### Update Statement Rollback Patterns
+
+The `update` command is the most common operation requiring careful rollback design. Below are the patterns for each MongoDB update operator and its corresponding rollback:
+
+| Update Operator | Forward Action | Rollback Operator | Rollback Action |
+|-----------------|---------------|-------------------|-----------------|
+| `$set` (new field) | Add a field with a value | `$unset` | Remove the field entirely |
+| `$set` (existing field) | Change a field's value | `$set` | Restore the previous value |
+| `$unset` | Remove a field | `$set` | Restore the field with its original value |
+| `$inc` | Increment a numeric field | `$inc` (negative) | Decrement by the same amount |
+| `$rename` | Rename a field | `$rename` | Rename back to original name |
+| `$push` | Add element to array | `$pull` | Remove the specific element |
+| `$pull` | Remove element from array | `$push` | Re-add the element |
+| `$addToSet` | Add unique element to array | `$pull` | Remove the element |
+| `$set` (nested) | Set nested field `a.b.c` | `$unset` or `$set` | Remove or restore nested field |
+| `$currentDate` | Set field to current date | `$set` | Restore the previous date value |
+
+#### Key Principles for Update Rollbacks
+
+1. **Always store the "before" state:** When using `$set` on existing fields, record the original value in the rollback block so it can be restored.
+
+2. **Use `$unset` for new fields:** When the forward action adds a field that didn't exist before, the rollback should use `$unset` to remove it completely (not set it to `null`).
+
+3. **Reverse `$inc` with negative `$inc`:** If you increment by N, rollback with `$inc: -N`. Never use `$set` to a hard-coded value (the field might have been modified by application logic between deploy and rollback).
+
+4. **Match the same documents:** Ensure the rollback `q` (query) filter matches exactly the same documents that the forward action modified. Use `_id` for targeted updates; use the same filter criteria for bulk updates.
+
+5. **Use `multi: true` consistently:** If the forward update uses `multi: true`, the rollback must also use `multi: true` to revert all affected documents.
+
+#### Example: Update with Rollback (JSON Changelog)
+
+```json
+{
+  "changeSet": {
+    "id": "1.2.0-002",
+    "author": "admin",
+    "comment": "Bulk update: add 'status' field to all books",
+    "changes": [
+      {
+        "runCommand": {
+          "command": "{ update: 'books', updates: [ { q: {}, u: { $set: { status: 'active' } }, multi: true } ] }"
+        }
+      }
+    ],
+    "rollback": [
+      {
+        "runCommand": {
+          "command": "{ update: 'books', updates: [ { q: {}, u: { $unset: { status: '' } }, multi: true } ] }"
+        }
+      }
+    ]
+  }
+}
+```
+
+#### Example: Rename Field with Rollback
+
+```json
+{
+  "changeSet": {
+    "id": "1.2.0-005",
+    "author": "admin",
+    "comment": "Rename 'email' to 'contactEmail' in authors",
+    "changes": [
+      {
+        "runCommand": {
+          "command": "{ update: 'authors', updates: [ { q: {}, u: { $rename: { email: 'contactEmail' } }, multi: true } ] }"
+        }
+      }
+    ],
+    "rollback": [
+      {
+        "runCommand": {
+          "command": "{ update: 'authors', updates: [ { q: {}, u: { $rename: { contactEmail: 'email' } }, multi: true } ] }"
+        }
+      }
+    ]
+  }
+}
+```
+
+#### Example: Increment with Rollback
+
+```json
+{
+  "changeSet": {
+    "id": "1.2.0-004",
+    "author": "admin",
+    "comment": "Increase page count by 10 for revised books",
+    "changes": [
+      {
+        "runCommand": {
+          "command": "{ update: 'books', updates: [ { q: { _id: 'book-001' }, u: { $inc: { pages: 10 } } }, { q: { _id: 'book-002' }, u: { $inc: { pages: 10 } } } ] }"
+        }
+      }
+    ],
+    "rollback": [
+      {
+        "runCommand": {
+          "command": "{ update: 'books', updates: [ { q: { _id: 'book-001' }, u: { $inc: { pages: -10 } } }, { q: { _id: 'book-002' }, u: { $inc: { pages: -10 } } } ] }"
+        }
+      }
+    ]
+  }
+}
+```
+
+#### Example: Array Push/Pull with Rollback
+
+```json
+{
+  "changeSet": {
+    "id": "1.2.0-007",
+    "author": "admin",
+    "comment": "Add 'concurrency' tag to book-001",
+    "changes": [
+      {
+        "runCommand": {
+          "command": "{ update: 'books', updates: [ { q: { _id: 'book-001' }, u: { $push: { tags: 'concurrency' } } } ] }"
+        }
+      }
+    ],
+    "rollback": [
+      {
+        "runCommand": {
+          "command": "{ update: 'books', updates: [ { q: { _id: 'book-001' }, u: { $pull: { tags: 'concurrency' } } } ] }"
+        }
+      }
+    ]
+  }
+}
+```
+
 ---
 
 ## Rollback Strategies
@@ -364,4 +497,5 @@ See the example changelog files in the [`liquibase/changelogs/`](../../liquibase
 - **`db.changelog-master.json`** — Root changelog that includes versioned changelogs.
 - **`db.changelog-1.0.0.json`** — Collection creation, indexes, seed data with full rollback blocks.
 - **`db.changelog-1.1.0.json`** — Schema modifications, validator updates, new indexes with rollback.
+- **`db.changelog-1.2.0.json`** — Update statement rollback patterns: `$set`, `$unset`, `$inc`, `$rename`, `$push`, `$pull`, nested fields.
 - **`formatted-mongo-example.js`** — Formatted Mongo changelog example (Pro/Secure only).
