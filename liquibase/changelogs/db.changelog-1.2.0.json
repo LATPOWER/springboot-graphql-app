@@ -1,0 +1,203 @@
+{
+  "databaseChangeLog": [
+    {
+      "changeSet": {
+        "id": "1.2.0-001",
+        "author": "admin",
+        "labels": "release-1.2.0",
+        "context": "all",
+        "comment": "Update single document: rename author field value",
+        "changes": [
+          {
+            "runCommand": {
+              "command": "{ update: 'authors', updates: [ { q: { _id: 'author-002' }, u: { $set: { name: 'Robert C. Martin (Uncle Bob)' } }, upsert: false } ] }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "runCommand": {
+              "command": "{ update: 'authors', updates: [ { q: { _id: 'author-002' }, u: { $set: { name: 'Robert C. Martin' } }, upsert: false } ] }"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.2.0-002",
+        "author": "admin",
+        "labels": "release-1.2.0",
+        "context": "all",
+        "comment": "Bulk update: add 'status' field to all books (set to 'active')",
+        "changes": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: {}, u: { $set: { status: 'active' } }, multi: true } ] }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: {}, u: { $unset: { status: '' } }, multi: true } ] }"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.2.0-003",
+        "author": "admin",
+        "labels": "release-1.2.0",
+        "context": "all",
+        "comment": "Conditional update: mark books with 500+ pages as 'extended' edition",
+        "changes": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: { pages: { $gte: 500 } }, u: { $set: { edition: 'extended' } }, multi: true } ] }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: { edition: 'extended' }, u: { $unset: { edition: '' } }, multi: true } ] }"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.2.0-004",
+        "author": "admin",
+        "labels": "release-1.2.0",
+        "context": "all",
+        "comment": "Increment update: increase page count by 10 for revised books",
+        "changes": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: { _id: 'book-001' }, u: { $inc: { pages: 10 } } }, { q: { _id: 'book-002' }, u: { $inc: { pages: 10 } } } ] }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: { _id: 'book-001' }, u: { $inc: { pages: -10 } } }, { q: { _id: 'book-002' }, u: { $inc: { pages: -10 } } } ] }"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.2.0-005",
+        "author": "admin",
+        "labels": "release-1.2.0",
+        "context": "all",
+        "comment": "Rename field: rename 'email' to 'contactEmail' in authors collection",
+        "changes": [
+          {
+            "runCommand": {
+              "command": "{ update: 'authors', updates: [ { q: {}, u: { $rename: { email: 'contactEmail' } }, multi: true } ] }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "runCommand": {
+              "command": "{ update: 'authors', updates: [ { q: {}, u: { $rename: { contactEmail: 'email' } }, multi: true } ] }"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.2.0-006",
+        "author": "admin",
+        "labels": "release-1.2.0",
+        "context": "all",
+        "comment": "Array update: add 'tags' array field to books",
+        "changes": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: { _id: 'book-001' }, u: { $set: { tags: ['java', 'best-practices'] } } }, { q: { _id: 'book-002' }, u: { $set: { tags: ['clean-code', 'refactoring'] } } }, { q: { _id: 'book-003' }, u: { $set: { tags: ['distributed-systems', 'data'] } } } ] }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: { _id: 'book-001' }, u: { $unset: { tags: '' } } }, { q: { _id: 'book-002' }, u: { $unset: { tags: '' } } }, { q: { _id: 'book-003' }, u: { $unset: { tags: '' } } } ] }"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.2.0-007",
+        "author": "admin",
+        "labels": "release-1.2.0",
+        "context": "all",
+        "comment": "Push to array: add a new tag to book-001",
+        "changes": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: { _id: 'book-001' }, u: { $push: { tags: 'concurrency' } } } ] }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: { _id: 'book-001' }, u: { $pull: { tags: 'concurrency' } } } ] }"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.2.0-008",
+        "author": "admin",
+        "labels": "release-1.2.0",
+        "context": "all",
+        "comment": "Nested field update: add metadata.lastUpdated to all books",
+        "changes": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: {}, u: { $set: { 'metadata.lastUpdated': '2025-06-01', 'metadata.version': 1 } }, multi: true } ] }"
+            }
+          }
+        ],
+        "rollback": [
+          {
+            "runCommand": {
+              "command": "{ update: 'books', updates: [ { q: {}, u: { $unset: { metadata: '' } }, multi: true } ] }"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "changeSet": {
+        "id": "1.2.0-tag",
+        "author": "admin",
+        "labels": "release-1.2.0",
+        "context": "all",
+        "changes": [
+          {
+            "tagDatabase": {
+              "tag": "release-1.2.0"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
