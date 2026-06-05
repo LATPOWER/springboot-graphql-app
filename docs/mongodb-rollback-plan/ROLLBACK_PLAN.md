@@ -32,7 +32,7 @@ Liquibase tracks all applied changesets in a `DATABASECHANGELOG` collection with
 | Component | Version | Notes |
 |-----------|---------|-------|
 | Liquibase CLI | 4.20+ | Core engine |
-| Liquibase MongoDB Extension (OSS) | 4.24.0+ | For XML/YAML/JSON changelogs with modeled change types |
+| Liquibase MongoDB Extension (OSS) | 4.24.0+ | For JSON/XML/YAML changelogs with modeled change types |
 | Liquibase MongoDB Pro/Secure Extension | 1.3.0+ | For Formatted Mongo (`.js`) changelogs + targeted rollback |
 | MongoDB Server | 4.4+ | Target database |
 | Java | 17+ | Required by Liquibase |
@@ -70,7 +70,7 @@ dependencies {
                        │
           ┌────────────▼────────────┐
           │   Changelog Files       │
-          │  (XML / YAML / JSON     │
+          │  (JSON / YAML / XML     │
           │   or Formatted Mongo)   │
           └────────────┬────────────┘
                        │
@@ -110,7 +110,7 @@ url=mongodb://localhost:27017/myapp_db
 # url=mongodb://username:password@host:27017/myapp_db?authSource=admin
 
 # Changelog
-changelog-file=changelogs/db.changelog-master.xml
+changelog-file=changelogs/db.changelog-master.json
 
 # Liquibase behavior
 liquibase.hub.mode=off
@@ -139,10 +139,10 @@ liquibase.hub.mode=off
 ```
 liquibase/
 ├── changelogs/
-│   ├── db.changelog-master.xml          # Root changelog (includes others)
-│   ├── db.changelog-1.0.0.xml           # Release 1.0.0 changes
-│   ├── db.changelog-1.1.0.xml           # Release 1.1.0 changes
-│   └── db.changelog-1.2.0.xml           # Release 1.2.0 changes
+│   ├── db.changelog-master.json         # Root changelog (includes others)
+│   ├── db.changelog-1.0.0.json          # Release 1.0.0 changes
+│   ├── db.changelog-1.1.0.json          # Release 1.1.0 changes
+│   └── db.changelog-1.2.0.json          # Release 1.2.0 changes
 ├── rollback-scripts/
 │   └── emergency-rollback.sh            # Emergency rollback helper
 ├── liquibase.properties
@@ -210,7 +210,7 @@ Roll back a single changeset without reverting the ones applied after it.
 liquibase rollback-one-changeset \
   --changeset-id="3" \
   --changeset-author="admin" \
-  --changelog-file=changelogs/db.changelog-master.xml \
+  --changelog-file=changelogs/db.changelog-master.json \
   --force
 ```
 
@@ -265,7 +265,7 @@ Step 3: Identify the target tag
 
 Step 4: Execute the rollback
   $ liquibase rollback --tag=release-1.0.0 \
-      --changelog-file=changelogs/db.changelog-master.xml
+      --changelog-file=changelogs/db.changelog-master.json
 
 Step 5: Verify the rollback
   $ liquibase history
@@ -400,9 +400,9 @@ mongorestore --uri="mongodb://localhost:27017/myapp_db" \
 
 See the example changelog files in the [`liquibase/changelogs/`](../../liquibase/changelogs/) directory:
 
-- **`db.changelog-master.xml`** — Root changelog that includes versioned changelogs.
-- **`db.changelog-1.0.0.xml`** — Collection creation, indexes, seed data with full rollback blocks.
-- **`db.changelog-1.1.0.xml`** — Schema modifications, validator updates, new indexes with rollback.
+- **`db.changelog-master.json`** — Root changelog that includes versioned changelogs.
+- **`db.changelog-1.0.0.json`** — Collection creation, indexes, seed data with full rollback blocks.
+- **`db.changelog-1.1.0.json`** — Schema modifications, validator updates, new indexes with rollback.
 - **`formatted-mongo-example.js`** — Formatted Mongo changelog example (Pro/Secure only).
 
 See the helper scripts in [`liquibase/rollback-scripts/`](../../liquibase/rollback-scripts/):

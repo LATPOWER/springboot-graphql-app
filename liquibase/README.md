@@ -8,9 +8,9 @@ This directory contains the Liquibase configuration and changelog files for mana
 liquibase/
 ├── liquibase.properties                  # Connection and config
 ├── changelogs/
-│   ├── db.changelog-master.xml           # Root changelog
-│   ├── db.changelog-1.0.0.xml           # Release 1.0.0: collections, indexes, seed data
-│   ├── db.changelog-1.1.0.xml           # Release 1.1.0: reviews, validator updates
+│   ├── db.changelog-master.json          # Root changelog
+│   ├── db.changelog-1.0.0.json          # Release 1.0.0: collections, indexes, seed data
+│   ├── db.changelog-1.1.0.json          # Release 1.1.0: reviews, validator updates
 │   └── formatted-mongo-example.js        # Formatted Mongo example (Pro only)
 ├── rollback-scripts/
 │   └── emergency-rollback.sh             # Backup + rollback automation
